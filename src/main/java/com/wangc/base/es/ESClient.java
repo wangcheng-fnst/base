@@ -45,7 +45,7 @@ import java.util.*;
 /**
  * 操作es集群的客户端
  *
- * @Auth:18089751
+ * @Auth:wcking
  */
 public class ESClient implements InitializingBean {
 

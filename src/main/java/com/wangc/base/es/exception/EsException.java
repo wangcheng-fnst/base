@@ -1,7 +1,7 @@
 package com.wangc.base.es.exception;
 
 /**
- * @Auth 18089751
+ * @Auth wcking
  **/
 public class EsException extends Exception {
 

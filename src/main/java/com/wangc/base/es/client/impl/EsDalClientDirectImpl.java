@@ -15,7 +15,7 @@ import java.util.Map;
 /**
  *  直接连接ES集群，需要jdk>1.8
  *
- * @Auth 18089751
+ * @Auth wcking
  * @see [相关类/方法]（可选）
  * @since [产品/模块版本] （可选）
  */
@@ -35,7 +35,7 @@ public class EsDalClientDirectImpl implements ESDalClient {
     /**
      *  异步保存<br>
      *
-     * @Auth 18089751
+     * @Auth wcking
      * @see [相关类/方法]（可选）
      * @since [产品/模块版本] （可选）
      */
