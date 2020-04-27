@@ -15,7 +15,7 @@ import java.util.Map;
  * @see [相关类/方法]（可选）
  * @since [产品/模块版本] （可选）
  */
-public interface ESDalClient {
+public interface ESSqlClient {
     /**
      * 异步存数据
      *

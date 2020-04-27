@@ -1,12 +1,18 @@
 package com.wangc.base.es.client;
 
 
+import com.wangc.base.es.SqlHelper;
 import com.wangc.base.es.exception.EsException;
 import com.wangc.base.es.exception.ExceptionMessage;
 import com.wangc.base.es.model.CombinedQueryResult;
 import com.wangc.base.es.model.ESDocModel;
+import org.apache.ibatis.builder.SqlSourceBuilder;
+import org.apache.ibatis.builder.xml.XMLMapperEntityResolver;
+import org.apache.ibatis.mapping.BoundSql;
+import org.apache.ibatis.parsing.ParsingException;
 import org.apache.ibatis.parsing.XNode;
 import org.apache.ibatis.parsing.XPathParser;
+import org.apache.ibatis.session.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.*;
@@ -27,7 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  *  查询ES客户端
  *  使用方法如下（使用xml管理bean的方式，注解方式参照即可）
- *   1. 配置ESDalClient
+ *   1. 配置ESSqlClient
  *      如果是1.8 版本
  *        需要先配置ESClient
  *        <bean id="esClient" class="com.suning.union.lib.es.ESClient">
@@ -37,16 +43,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * 		    <property name="readTimeout" value="超时时间"></property>
  * 	     </bean>
  * 	     然后配置
- *       <bean id="esDalClient" class="com.suning.union.lib.es.client.impl.EsDalClientDirectImpl">
+ *       <bean id="esSqlClient" class="com.suning.union.lib.es.client.impl.EsDalClientDirectImpl">
  * 		    <property name="esClient" ref="esClient"></property>
  * 	     </bean>
  *
  *
- *      如果是1.7 版本
- *      <bean id="esDalClient" class="com.suning.union.lib.es.client.impl.ESDalClientRsfImpl"></bean>
  *
- *
- *   2. 配置 DefaultESDalClient
+ *   2. 配置 DefaultESSqlClient
  *          <property name="esSqlMapConfigLocation">
  *             <list>
  *                 //存放es sql的xml路径
@@ -59,15 +62,17 @@ import java.util.concurrent.ConcurrentHashMap;
  *   3. 在需要使用es操作的地方进行注入即可
  *
  */
-public class DefaultESDal implements InitializingBean {
+public class ESSqlDao implements InitializingBean {
 
-    private static Logger logger = LoggerFactory.getLogger(DefaultESDal.class.getName());
+    private static Logger logger = LoggerFactory.getLogger(ESSqlDao.class.getName());
 
     protected Resource[] esSqlMapConfigLocation;
 
-    private ESDalClient esDalClient;
+    private ESSqlClient ESSQLClient;
     private ConcurrentHashMap<String,String> esSqlContainer =new ConcurrentHashMap<String,String>();
     Properties variables = new Properties();
+    Configuration configuration = new Configuration();
+    SqlSourceBuilder sqlSourceBuilder = new SqlSourceBuilder(configuration);
 
     private static ConversionService conversionService = DefaultConversionService.getSharedInstance();
 
@@ -89,12 +94,12 @@ public class DefaultESDal implements InitializingBean {
 
 
 
-    public ESDalClient getEsDalClient() {
-        return esDalClient;
+    public ESSqlClient getESSQLClient() {
+        return ESSQLClient;
     }
 
-    public void setEsDalClient(ESDalClient esDalClient) {
-        this.esDalClient = esDalClient;
+    public void setESSQLClient(ESSqlClient ESSQLClient) {
+        this.ESSQLClient = ESSQLClient;
     }
 
     @Override
@@ -102,12 +107,11 @@ public class DefaultESDal implements InitializingBean {
         if (esSqlMapConfigLocation != null) {
             for (Resource resource : esSqlMapConfigLocation) {
                 //解析esSqlMap配置文件
-//                XPathParser xParser = new XPathParser(resource.getInputStream(), false, variables, new XmlSqlMapEntityResolver());
-                XPathParser xParser = new XPathParser(resource.getInputStream(), false, variables);
-                XNode context = xParser.evalNode("/esSqlMap");
+                XPathParser xParser = new XPathParser(resource.getInputStream(), false, variables, new XMLMapperEntityResolver());
+                XNode context = xParser.evalNode("/mapper");
                 String namespace = context.getStringAttribute("namespace", "");
                 if ("".equals(namespace)) {
-                    //throw new ParsingException("sqlMap's namespace cannot be empty",new Exception());
+                    throw new ParsingException("sqlMap's namespace cannot be empty",new Exception());
                 }
 
                 for (XNode statementsNode : context.evalNodes("sql|select|insert|update|delete")) {
@@ -122,17 +126,17 @@ public class DefaultESDal implements InitializingBean {
                             String data = child.getStringBody("");
                             sqlBuilder.append(data);
                         } else if (child.getNode().getNodeType() == Node.ELEMENT_NODE) {
-                            //throw new ParsingException("Unknown element <" + nodeName + "> in SQL statement.");
+                            throw new ParsingException("Unknown element <" + nodeName + "> in SQL statement.");
                         }
                     }
                     String sqlSource = sqlBuilder.toString();
                     sqlSource = sqlSource.trim().replace('\n', ' ');
                     if (id == null || "".equals(id)) {
-                        //throw new ParsingException(" element " + statementsNode.getName() +
-                        //        "'s id cannot be empty");
+                        throw new ParsingException(" element " + statementsNode.getName() +
+                                "'s id cannot be empty");
                     }
                     if (sqlSource == null || "".equals(sqlSource)) {
-                        //throw new ParsingException(" sql sql statment['id'=" + id + "] is an empty sql.");
+                        throw new ParsingException(" sql sql statment['id'=" + id + "] is an empty sql.");
                     }
                     esSqlContainer.putIfAbsent(namespace+"_"+id,sqlSource);
 
@@ -142,19 +146,12 @@ public class DefaultESDal implements InitializingBean {
     }
 
     /**
-     * 同步插入，使用rsf接口进行通信
+     * 同步插入
      * @param doc
      * @return
      */
     public  boolean  syncSave(ESDocModel doc) throws IOException {
-        return esDalClient.syncSave(doc);
-//        Map<String,Object> reqMap = new HashMap<>();
-//        reqMap.put("index",doc.getIndex());
-//        reqMap.put("type",doc.getType());
-//        reqMap.put("pkId",doc.getPkId());
-//        reqMap.put("data",doc.getData());
-//
-//        return esDalClient.insertOrUpdateDoc(doc.getData(),doc.getPkId(),doc.getIndex(),doc.getType());
+        return ESSQLClient.syncSave(doc);
     }
 
 
@@ -165,7 +162,7 @@ public class DefaultESDal implements InitializingBean {
      * @return
      * @throws Exception
      */
-    public <T> CombinedQueryResult<T> searchForList(String esSqlId, Map param, Class<T> tClass) throws EsException {
+    public <T> CombinedQueryResult<T> searchForList(String esSqlId, Map<String,Object> param, Class<T> tClass) throws EsException {
         if (StringUtils.isEmpty(esSqlId)){
             throw new EsException(ExceptionMessage.ES_SQL_NOT_FOUND);
         }
@@ -174,13 +171,18 @@ public class DefaultESDal implements InitializingBean {
         if (StringUtils.isEmpty(sqlSource)){
             throw new EsException(ExceptionMessage.ES_SQL_NOT_FOUND);
         }
-
-        String finalEsSql = FreeMakerParser.process(sqlSource,param);
+        BoundSql boundSql = sqlSourceBuilder
+                .parse(sqlSource,Map.class,param)
+                .getBoundSql(param);
+        param.forEach((k,v)->{
+            boundSql.setAdditionalParameter(k,v);
+        });
+        String finalEsSql = SqlHelper.getBoundSql(boundSql,param,configuration);
         Map<String,Object> reqMap = new HashMap<>();
         reqMap.put("sql",finalEsSql);
         CombinedQueryResult<T> combinedQueryResult = new CombinedQueryResult<>();
         try {
-            CombinedQueryResult<Map> result = esDalClient.searchForList(finalEsSql,Map.class);
+            CombinedQueryResult<Map> result = ESSQLClient.searchForList(finalEsSql,Map.class);
             List<T> tList = new ArrayList<>();
             if (!CollectionUtils.isEmpty(result.getResList())) {
                 for (Map map : result.getResList()) {
@@ -216,12 +218,19 @@ public class DefaultESDal implements InitializingBean {
             throw new EsException(ExceptionMessage.ES_SQL_NOT_FOUND);
         }
 
-        String finalEsSql = FreeMakerParser.process(sqlSource,param);
+        BoundSql boundSql = sqlSourceBuilder
+                .parse(sqlSource,Map.class,param)
+                .getBoundSql(param);
+        param.forEach((k,v)->{
+            boundSql.setAdditionalParameter(k,v);
+        });
+        String finalEsSql = SqlHelper.getBoundSql(boundSql,param,configuration);
+
         CombinedQueryResult<T> combinedQueryResult = new CombinedQueryResult<>();
         try {
-            CombinedQueryResult<Map> result = esDalClient.searchByScrollId(finalEsSql,scrollId);
+            CombinedQueryResult<Map> result = ESSQLClient.searchByScrollId(finalEsSql,scrollId);
             List<T> tList = new ArrayList<>();
-            if (CollectionUtils.isNotEmpty(result.getResList())) {
+            if (!CollectionUtils.isEmpty(result.getResList())) {
                 for (Map map : result.getResList()) {
                     tList.add(mapToClass((Map<String, Object>) map,tClass));
                 }
@@ -246,7 +255,7 @@ public class DefaultESDal implements InitializingBean {
      * @return
      */
     public boolean deleteById(String id,String index,String type){
-        return esDalClient.deleteById(id,index,type);
+        return ESSQLClient.deleteById(id,index,type);
     }
 
 
@@ -255,7 +264,7 @@ public class DefaultESDal implements InitializingBean {
     }
 
     protected static String underscoreName(String name) {
-        if (!org.springframework.util.StringUtils.hasLength(name)) {
+        if (!StringUtils.hasLength(name)) {
             return "";
         }
         StringBuilder result = new StringBuilder();
@@ -281,7 +290,7 @@ public class DefaultESDal implements InitializingBean {
      * @param <T>
      * @return
      */
-    public static <T> T mapToClass(Map<String,Object> data,Class<T> tClass){
+    public static <T> T mapToClass(Map<String,Object> data,Class<T> tClass) throws EsException {
         PropertyDescriptor[] pds = BeanUtils.getPropertyDescriptors(tClass);
         HashMap<String, PropertyDescriptor> mappedFields = new HashMap<>();
         Set<String> mappedProperties = new HashSet<>();
@@ -316,8 +325,9 @@ public class DefaultESDal implements InitializingBean {
                         }
                     }
                 } catch (NotWritablePropertyException ex) {
-                    throw new DataRetrievalFailureException(
-                            "ES sql Unable to map column '" + column + "' to property '" + pd.getName() + "'", ex);
+                    throw new EsException( "ES sql Unable to map column '" + column + "' to property '" + pd.getName() + "\'");
+//                    throw new Exception(
+//                            "ES sql Unable to map column '" + column + "' to property '" + pd.getName() + "'");
                 }
             }
         }

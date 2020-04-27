@@ -3,7 +3,7 @@ package com.wangc.base.es.client.impl;
 
 
 import com.wangc.base.es.ESClient;
-import com.wangc.base.es.client.ESDalClient;
+import com.wangc.base.es.client.ESSqlClient;
 import com.wangc.base.es.exception.EsException;
 import com.wangc.base.es.model.CombinedQueryDto;
 import com.wangc.base.es.model.CombinedQueryResult;
@@ -19,7 +19,7 @@ import java.util.Map;
  * @see [相关类/方法]（可选）
  * @since [产品/模块版本] （可选）
  */
-public class EsDalClientDirectImpl implements ESDalClient {
+public class ESSqlClientDirectImpl implements ESSqlClient {
 
     private ESClient esClient;
 
