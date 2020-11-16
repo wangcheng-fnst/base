@@ -1,7 +1,7 @@
 package com.wangc.base.lib.threadPoolManager;
 
-import com.wcking.base.threadPoolManager.threadPool.CustomThreadPoolExecutor;
-import com.wcking.base.threadPoolManager.threadPool.TaskMsgListener;
+import com.wangc.base.lib.threadPoolManager.threadPool.CustomThreadPoolExecutor;
+import com.wangc.base.lib.threadPoolManager.threadPool.TaskMsgListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

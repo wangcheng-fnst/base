@@ -1,6 +1,7 @@
 package com.wangc.base.lib.threadPoolManager.threadPool;
 
-import com.wcking.base.threadPoolManager.TaskMsg;
+
+import com.wangc.base.lib.threadPoolManager.TaskMsg;
 
 public interface TaskMsgListener {
 

@@ -1,6 +1,7 @@
 package com.wangc.base.lib.threadPoolManager;
 
-import com.wcking.base.threadPoolManager.exception.ThreadPoolException;
+
+import com.wangc.base.lib.threadPoolManager.exception.ThreadPoolException;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;

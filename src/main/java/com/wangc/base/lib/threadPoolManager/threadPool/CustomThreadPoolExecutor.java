@@ -1,7 +1,7 @@
 package com.wangc.base.lib.threadPoolManager.threadPool;
 
-import com.wcking.base.threadPoolManager.TaskMsg;
-import com.wcking.base.threadPoolManager.ThreadLocalUtil;
+import com.wangc.base.lib.threadPoolManager.TaskMsg;
+import com.wangc.base.lib.threadPoolManager.ThreadLocalUtil;
 import org.springframework.core.task.AsyncListenableTaskExecutor;
 import org.springframework.core.task.TaskDecorator;
 import org.springframework.core.task.TaskRejectedException;

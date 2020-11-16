@@ -1,7 +1,7 @@
 package com.wangc.base.lib.threadPoolManager;
 
 import com.alibaba.fastjson.JSONArray;
-import com.wcking.base.threadPoolManager.exception.ThreadPoolException;
+import com.wangc.base.lib.threadPoolManager.exception.ThreadPoolException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
